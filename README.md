@@ -7,22 +7,22 @@ and works with pretty much any type of nfc tag. We used rubberized bracelets wit
 
 ## Quick Start
 
-**Requirements:** Node.js 18+, npm, and optionally a PC/SC NFC reader
+**Requirements:** Node.js 18+, npm, and a PC/SC NFC reader
 
 **Install and run:**
+
 ```bash
 npm install
+node read-nfc.js
 node dashboard.js
 ```
 
-Open `http://localhost:3000` in your browser.
-
-**Optional: NFC reader**
-```bash
-node read-nfc.js
-```
+Open `http://localhost:3000` in your browser. 
 
 ## Usage
+Use the terminal Option 1 to start the scanner and add tags to the database. Then go to the registration page in the dashboard and update the person's info for each tag there. Use Option 2 to put the scanner in "Race mode" which gets it ready to record the splits.
+
+Click start race when the race starts. Have the participants tap when they finish the race or each time you want to take splits. After the race export using the terminal option 3. "Archive results to CSV" to save and analyze your results. You can also just view the live dashboard at index.html which polls and updates frequently.
 
 **Dashboard:** `index.html` - view race timer, results, and controls  
 **Register:** `register.html` - add/edit participants and bibs  
@@ -60,31 +60,3 @@ To reset everything, delete `race-timing.db` and restart the server.
 
 **Database errors:** Delete `race-timing.db` and restart
 
-## Contributing
-
-PRs welcome. Keep changes small and test before submitting.
-
-## License
-
-MIT License
-
-Copyright (c) 2025
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-MIT-style: use as you like, attribution appreciated.
