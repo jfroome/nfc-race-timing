@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register User to RFID</title>
+    <link rel="stylesheet" href="site.css">
+</head>
+<body>
+    <div style="text-align:center;margin-bottom:1.5rem;">
+      <a href="index.html" style="display:inline-block;padding:0.5em 1.2em;background:#007bff;color:white;border-radius:5px;text-decoration:none;font-size:1.1em;">Back to Dashboard</a>
+    </div>
+    <h1>Participant Registration</h1>
+    <div id="participants"></div>
+    <button id="saveAllBtn" style="display:block;margin:1rem auto 0 auto;padding:0.7rem 2rem;font-size:1.1em;background:#007bff;color:white;border:none;border-radius:5px;cursor:pointer;">Save ALL</button>
+    <div id="result"></div>
+    <script>
+    async function fetchParticipants() {
+        const res = await fetch('/api/participants');
+        const data = await res.json();
+        const { participants, lastScannedUID } = data;
+        const container = document.getElementById('participants');
+        container.innerHTML = '';
+        const table = document.createElement('table');
+        table.style.borderCollapse = 'collapse';
+        const columns = [
+            { key: 'uid', label: 'RFID UID' },
+            { key: 'name', label: 'Name' },
+            { key: 'bib', label: 'Bib' },
+            { key: 'created_date', label: 'Created' },
+            { key: 'last_scanned_date', label: 'Last Scanned' },
+            { key: 'last_updated_date', label: 'Last Updated' },
+        ];
+        let sortKey = 'last_scanned_date';
+        let sortDir = 'desc';
+        if (window._registerSortKey) sortKey = window._registerSortKey;
+        if (window._registerSortDir) sortDir = window._registerSortDir;
+
+        function sortRows(rows) {
+            return rows.sort((a, b) => {
+                let va = a[1][sortKey] || '';
+                let vb = b[1][sortKey] || '';
+                if (sortKey.includes('date')) {
+                    va = va || '';
+                    vb = vb || '';
+                }
+                if (sortDir === 'asc') {
+                    return (va > vb ? 1 : va < vb ? -1 : 0);
+                } else {
+                    return (va < vb ? 1 : va > vb ? -1 : 0);
+                }
+            });
+        }
+
+        let rows = Object.entries(participants);
+        rows = sortRows(rows);
+
+        let ths = columns.map(col =>
+            `<th data-sortkey="${col.key}" style="cursor:pointer;user-select:none;position:relative;">
+                <span style="font-size:0.97em;vertical-align:middle;">${col.label}</span><span class="sort-btn" style="font-size:0.8em;color:#bbb;margin-left:0.18em;vertical-align:middle;">⇅</span>
+            </th>`
+        ).join('') + '<th>Action</th>';
+        table.innerHTML = `<tr>${ths}</tr>`;
+
+        // Add click event listeners to headers for sorting
+        Array.from(table.querySelectorAll('th[data-sortkey]')).forEach(th => {
+            th.onclick = function() {
+                const key = th.getAttribute('data-sortkey');
+                if (window._registerSortKey === key) {
+                    window._registerSortDir = (window._registerSortDir === 'asc' ? 'desc' : 'asc');
+                } else {
+                    window._registerSortKey = key;
+                    window._registerSortDir = 'desc';
+                }
+                window.fetchParticipants();
+            };
+        });
+
+        // Find the UID of the most recently scanned participant (first row after sorting by last_scanned_date desc)
+        // Find the UID with the most recent last_scanned_date (regardless of sort)
+        let mostRecentUID = null;
+        let mostRecentDate = null;
+        Object.entries(participants).forEach(([uid, info]) => {
+            if (info.last_scanned_date && (!mostRecentDate || info.last_scanned_date > mostRecentDate)) {
+                mostRecentDate = info.last_scanned_date;
+                mostRecentUID = uid;
+            }
+        });
+
+        rows.forEach(([uid, info], idx) => {
+            const tr = document.createElement('tr');
+            if (uid === mostRecentUID) {
+                tr.style.background = '#7fff7f'; // bright green
+            }
+            tr.innerHTML = `
+                <td style="border:1px solid #ccc;padding:4px;">${uid}</td>
+                <td style="border:1px solid #ccc;padding:4px;">
+                    <input type="text" value="${info.name}" data-uid="${uid}" data-field="name" style="width:140px;" />
+                </td>
+                <td style="border:1px solid #ccc;padding:4px;">
+                    <input type="text" value="${info.bib || ''}" data-uid="${uid}" data-field="bib" style="width:60px;text-align:center;" />
+                </td>
+                <td style="border:1px solid #ccc;padding:4px;"><span style='font-size:0.85em;color:#555;'>${info.created_date ? new Date(info.created_date).toLocaleString() : ''}</span></td>
+                <td style="border:1px solid #ccc;padding:4px;"><span style='font-size:0.85em;color:#555;'>${info.last_scanned_date ? new Date(info.last_scanned_date).toLocaleString() : ''}</span></td>
+                <td style="border:1px solid #ccc;padding:4px;"><span style='font-size:0.85em;color:#555;'>${info.last_updated_date ? new Date(info.last_updated_date).toLocaleString() : ''}</span></td>
+                <td style="border:1px solid #ccc;padding:4px;">
+                    <button data-uid="${uid}" class="saveBtn">Save</button>
+                </td>
+            `;
+            table.appendChild(tr);
+        });
+        container.appendChild(table);
+
+        // Save ALL button logic
+        const saveAllBtn = document.getElementById('saveAllBtn');
+        if (saveAllBtn) {
+            saveAllBtn.onclick = async function() {
+                let updates = [];
+                rows.forEach(([uid, info]) => {
+                    const nameInput = document.querySelector(`input[data-uid='${uid}'][data-field='name']`);
+                    const bibInput = document.querySelector(`input[data-uid='${uid}'][data-field='bib']`);
+                    const name = nameInput ? nameInput.value.trim() : '';
+                    const bib = bibInput ? bibInput.value.trim() : '';
+                    // Always send both fields for consistency with single save
+                    if ((name && name !== info.name) || (bib && bib !== (info.bib || ''))) {
+                        updates.push({ rfid: uid, name: name || info.name, bib: bib || info.bib || '' });
+                    }
+                });
+                if (updates.length === 0) {
+                    document.getElementById('result').textContent = 'No changes to save.';
+                    return;
+                }
+                let success = 0, fail = 0;
+                for (const upd of updates) {
+                    try {
+                        const resp = await fetch('/api/participants/update', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(upd)
+                        });
+                        const result = await resp.json();
+                        if (resp.ok) success++;
+                        else fail++;
+                    } catch {
+                        fail++;
+                    }
+                }
+                document.getElementById('result').textContent = `Saved: ${success}, Failed: ${fail}`;
+                fetchParticipants();
+            };
+        }
+
+        // Add save event listeners
+        Array.from(document.getElementsByClassName('saveBtn')).forEach(btn => {
+            btn.onclick = async function() {
+                const uid = btn.getAttribute('data-uid');
+                const nameInput = document.querySelector(`input[data-uid='${uid}'][data-field='name']`);
+                const bibInput = document.querySelector(`input[data-uid='${uid}'][data-field='bib']`);
+                const name = nameInput.value.trim();
+                const bib = bibInput.value.trim();
+                if (!name) return alert('Name cannot be empty');
+                if (!bib) return alert('Bib cannot be empty');
+                const resp = await fetch('/api/participants/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rfid: uid, name, bib })
+                });
+                const result = await resp.json();
+                document.getElementById('result').textContent = result.message;
+                fetchParticipants();
+            };
+        });
+    }
+    fetchParticipants();
+    </script>
+</body>
+</html>

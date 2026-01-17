@@ -1,0 +1,235 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Race Results</title>
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <h1>🏁 Race Results</h1>
+  <div id="raceTimer" style="text-align:center;font-size:1.5em;font-weight:bold;margin-bottom:1rem;color:#007bff;">Race Timer: --:--.--</div>
+
+  <div style="text-align:center;margin-bottom:1.5rem;">
+  <button id="startRaceBtn" class="vapor-btn">Start Race</button>
+  <button id="stopRaceBtn" class="vapor-btn" style="display:none;">Stop Race</button>
+
+    <a href="register.html" class="vapor-link">Go to Registration</a>
+  </div>
+
+  <div id="confirmOverlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.4);z-index:1000;align-items:center;justify-content:center;">
+    <div id="confirmBox" style="background:white;padding:2em 2em 1.5em 2em;border-radius:8px;box-shadow:0 2px 16px rgba(0,0,0,0.2);max-width:90vw;text-align:center;">
+      <div id="confirmMsg" style="font-size:1.2em;margin-bottom:1.5em;"></div>
+      <button id="confirmYesBtn" style="padding:0.5em 1.5em;background:#28a745;color:white;border:none;border-radius:5px;font-size:1em;margin-right:1em;">Yes</button>
+      <button id="confirmNoBtn" style="padding:0.5em 1.5em;background:#dc3545;color:white;border:none;border-radius:5px;font-size:1em;">No</button>
+    </div>
+  </div>
+
+</script>
+<script>
+  // --- Custom Confirm Dialog Logic ---
+  let confirmAction = null;
+  function showConfirm(msg, action) {
+    document.getElementById('confirmMsg').textContent = msg;
+    document.getElementById('confirmOverlay').style.display = 'flex';
+    confirmAction = action;
+  }
+  function hideConfirm() {
+    document.getElementById('confirmOverlay').style.display = 'none';
+    confirmAction = null;
+  }
+  document.getElementById('confirmYesBtn').onclick = async function() {
+    if (typeof confirmAction === 'function') await confirmAction();
+    hideConfirm();
+  };
+  document.getElementById('confirmNoBtn').onclick = function() {
+    hideConfirm();
+  };
+
+  // --- Start/Stop Race Handlers ---
+  document.getElementById('startRaceBtn').onclick = function() {
+    showConfirm('Make sure the scanner is in race mode! Are you sure you want to start a new race? This will archive all previous results to csv.', async function() {
+      const res = await fetch('/api/race/start', { method: 'POST' });
+      if (res.ok) {
+        await fetchRaceStartTime();
+        updateRaceTimer();
+        refreshTable();
+        updateButtonStates();
+      }
+    });
+  };
+  document.getElementById('stopRaceBtn').onclick = function() {
+    showConfirm('Are you sure you want to stop the race?', async function() {
+      const res = await fetch('/api/race/stop', { method: 'POST' });
+      if (res.ok) {
+        await fetchRaceStartTime();
+        updateRaceTimer();
+        refreshTable();
+        updateButtonStates();
+      }
+    });
+  };
+</script>
+
+  <table id="resultsTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Name</th>
+        <th>Bib</th>
+        <th>UID</th>
+        <th>Laps</th>
+        <th>Total Time</th>
+        <th>Race Start</th>
+        <th>Race Stop</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+<script>
+  function formatDuration(ms) {
+    const totalSeconds = ms / 1000;
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    const decimals = Math.floor((totalSeconds % 1) * 100);
+
+    if (hours > 0) {
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${decimals.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${decimals.toString().padStart(2, '0')}`;
+    }
+  }
+
+
+  // --- Race Timer ---
+  let raceStartTime = null;
+  let raceStopTime = null;
+  async function fetchRaceStartTime() {
+    try {
+      const res = await fetch('/start');
+      if (!res.ok) throw new Error('No race start time');
+      const data = await res.json();
+      if (data && data.start) {
+        raceStartTime = new Date(data.start).getTime();
+        raceStopTime = data.stop ? new Date(data.stop).getTime() : null;
+      } else {
+        raceStartTime = null;
+        raceStopTime = null;
+      }
+    } catch (e) {
+      raceStartTime = null;
+      raceStopTime = null;
+    }
+    updateButtonStates();
+  }
+
+function updateButtonStates() {
+  const startBtn = document.getElementById('startRaceBtn');
+  const stopBtn = document.getElementById('stopRaceBtn');
+
+  const now = Date.now();
+  const running = raceStartTime && (!raceStopTime || raceStopTime > now);
+
+  if (running) {
+    startBtn.style.display = "none";   // hide Start
+    stopBtn.style.display = "inline-block"; // show Stop
+  } else {
+    startBtn.style.display = "inline-block"; // show Start
+    stopBtn.style.display = "none";   // hide Stop
+  }
+}
+
+  function updateRaceTimer() {
+    const timerDiv = document.getElementById('raceTimer');
+    if (!raceStartTime) {
+      timerDiv.textContent = 'Race Timer: --:--.--';
+      return;
+    }
+    let now = Date.now();
+    if (raceStopTime && now > raceStopTime) {
+      now = raceStopTime;
+    }
+    const elapsed = now - raceStartTime;
+    if (elapsed < 0) {
+      timerDiv.textContent = 'Race Timer: Not started';
+    } else {
+      timerDiv.textContent = 'Race Timer: ' + formatDuration(elapsed);
+      if (raceStopTime) {
+        timerDiv.textContent += ' (Stopped)';
+      }
+    }
+  }
+
+
+  // Fetch start time once, then update timer every 100ms
+  fetchRaceStartTime().then(() => {
+    updateRaceTimer();
+    updateButtonStates();
+    setInterval(updateRaceTimer, 100);
+    // Optionally, re-fetch start time every 10s in case of restart
+    setInterval(fetchRaceStartTime, 10000);
+  });
+
+  async function refreshTable() {
+    try {
+      const res = await fetch('/grouped-results');
+      const data = await res.json();
+      const tbody = document.querySelector('#resultsTable tbody');
+      tbody.innerHTML = '';
+
+      // Only show rows with a valid UID and at least one split/time
+      let people = Object.values(data).filter(person => person.uid && person.total && !isNaN(person.total));
+      if (people.length === 0) {
+        // Optionally show a friendly message
+        const row = document.createElement('tr');
+        row.innerHTML = `<td colspan="8" style="text-align:center;color:#888;">No race results yet.</td>`;
+        tbody.appendChild(row);
+        return;
+      }
+
+      // Sort by most laps (splitCount, descending), then by shortest total time (ascending)
+      people.sort((a, b) => {
+        if (b.splitCount !== a.splitCount) {
+          return b.splitCount - a.splitCount; // more laps first
+        }
+        return a.total - b.total; // shorter time first
+      });
+
+      // Fetch race start/stop for display
+      let raceStartStr = '--';
+      let raceStopStr = '--';
+      if (raceStartTime) raceStartStr = new Date(raceStartTime).toLocaleString();
+      if (raceStopTime) raceStopStr = new Date(raceStopTime).toLocaleString();
+
+      let i = 0;
+      people.forEach(person => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${++i}</td>
+          <td><a href="participant.html?uid=${person.uid}" style="color:#007bff;text-decoration:none;">${person.name || '-'}</a></td>
+          <td>${person.bib || '-'}</td>
+          <td>${person.uid}</td>
+          <td>${person.splitCount}</td>
+          <td>${formatDuration(person.total)}</td>
+          <td>${raceStartStr}</td>
+          <td>${raceStopStr}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    } catch (err) {
+      console.error('❌ Failed to load results:', err);
+    }
+  }
+
+  // Initial load and refresh every 3 seconds
+  refreshTable();
+  setInterval(refreshTable, 3000);
+</script>
+
+
+
+
+</body>
+</html>

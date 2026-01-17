@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Participant Splits</title>
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <h1>Participant Splits</h1>
+  <button onclick="window.location.href='index.html'" style="margin-bottom:1rem;">&larr; Back to Dashboard</button>
+  <table>
+    <thead>
+      <tr><th>Lap</th><th>Time</th><th>Split (ms)</th></tr>
+    </thead>
+    <tbody id="splits"></tbody>
+  </table>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const uid = params.get('uid');
+
+    function formatDuration(ms) {
+      const sec = ms / 1000;
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      const d = Math.floor((sec % 1) * 100);
+      return `${m}:${s.toString().padStart(2, '0')}.${d.toString().padStart(2, '0')}`;
+    }
+
+    fetch(`/results/${uid}`)
+      .then(res => res.json())
+      .then(data => {
+        const tbody = document.getElementById('splits');
+        data.splits.forEach((s, i) => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>Lap ${i + 1}</td>
+            <td>${new Date(s.timestamp).toLocaleTimeString()}</td>
+            <td>${formatDuration(data.deltas[i])}</td>
+          `;
+          tbody.appendChild(row);
+        });
+
+        const row = document.createElement('tr');
+        row.innerHTML = `<td colspan="2"><strong>Total</strong></td><td><strong>${formatDuration(data.total)}</strong></td>`;
+        tbody.appendChild(row);
+      });
+  </script>
+</body>
+</html>
