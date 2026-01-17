@@ -2,7 +2,8 @@
 
 ![Race Results](image.png)
 
-A lightweight race timing system using NFC tags, Express, and SQLite.
+Quick and dirty (mostly vibe coded) race timing system I made for a friend's beer mile birthday party. Uses a basic NFC reader like [this](https://www.amazon.ca/Reader-Copier-Writer-Duplicator-125kHz/dp/B0CYC6JDTM/ref=sr_1_19?dib=eyJ2IjoiMSJ9.8nnj_ySvSn87BvAWsWQT9buS55KDtsBmGH5hirnEu_Qnu8bhiLPzTujVFACi59T6pymmeYbcpeRSBIpUJXLGNAINpoyPNpuHeH4OBMBpOg1lt5wHbkmoMobDljCZznBsj7fpsvM1Eopa4F1kMNIOvoxCNd8luN4WUo0WXOaXXQUx7fgtdHTNh0nNSO165fUaLsmjYnrOzUUiowRq0stdqy3WE1fB81D6r3ualQ_hx_iHPRza0CkAp_W3xSZPVBSm4IXn8TXavqstoAMTgY4LIJQVC68bNcaVgtAQtY5YTeA.SOxhX4rHVKDqInUbkbbwAcJcQqhKO7mRH8_bjLwWizg&dib_tag=se&keywords=nfc+reader&qid=1768657608&sr=8-19)
+and works with pretty much any type of nfc tag. We used rubberized bracelets with nfc embedded in them, similar to the ones you get a spa.
 
 ## Quick Start
 

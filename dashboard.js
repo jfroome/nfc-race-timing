@@ -1,13 +1,7 @@
-
-
-
-
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const { initDb } = require('./db');
-// const http = require('http');
-// ...existing code...
 
 const app = express();
 const PORT = 3000;
