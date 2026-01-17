@@ -13,8 +13,8 @@ and works with pretty much any type of nfc tag. We used rubberized bracelets wit
 
 ```bash
 npm install
-node read-nfc.js
-node dashboard.js
+node read-nfc.js # starts the commandline prompt for your scanner
+node dashboard.js # starts the web app dashboard
 ```
 
 Open `http://localhost:3000` in your browser. 
